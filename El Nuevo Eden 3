@@ -1,0 +1,249 @@
+ElNuevoEden/
+│
+├─ public/
+│    ├─ index.html
+│    ├─ style.css
+│    ├─ script.js
+│    └─ models/       (aquí puedes agregar tus modelos 3D si quieres)
+│
+├─ server/
+│    └─ server.js     (opcional para versión con servidor)
+│
+└─ database/
+     └─ usuarios.json   (para guardar usuarios y créditos)
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Nuevo Edén</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<h1>El Nuevo Edén</h1>
+<div id="game-container"></div>
+
+<div id="ui">
+    <button onclick="abrirTiendaCasas()">Comprar Casa</button>
+    <button onclick="abrirTiendaCreditos()">Comprar Créditos</button>
+    <button onclick="entrarCasa()">Entrar a Casa</button>
+    <button onclick="llamarTaxi()">Llamar Taxi Futurista</button>
+    <button onclick="viajeEspacial()">Viaje Espacial Pagado</button>
+    <button onclick="comprarAvatar()">Comprar Avatar</button>
+    <button onclick="comprarMascota()">Comprar Mascota</button>
+    <button onclick="comprarCarro()">Comprar Carro</button>
+    <span id="creditos">Créditos: 100</span>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #0d0d0d;
+    color: #fff;
+}
+
+#game-container {
+    width: 100vw;
+    height: 80vh;
+    border: 1px solid #00ff90;
+}
+
+#ui {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: rgba(0,0,0,0.7);
+}
+
+button {
+    background-color: #00ff90;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 5px;
+}
+
+button:hover {
+    background-color: #00cc75;
+}
+// ======================
+// ESCENA, CÁMARA, LUCES
+// ======================
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById("game-container").appendChild(renderer.domElement);
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+camera.position.set(0,50,100);
+controls.update();
+
+// Luz principal
+let light = new THREE.PointLight(0xffffff, 1);
+light.position.set(100, 200, 100);
+scene.add(light);
+
+// Suelo
+let ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(2000,2000),
+    new THREE.MeshPhongMaterial({color:0x1a1a1a})
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+// ======================
+// ELEMENTOS CIUDAD
+// ======================
+
+// Ríos
+function crearRio(x,z,largo,ancho){
+    let rio = new THREE.Mesh(
+        new THREE.BoxGeometry(largo,0.5,ancho),
+        new THREE.MeshPhongMaterial({color:0x0033ff, transparent:true, opacity:0.7})
+    );
+    rio.position.set(x,0.25,z);
+    scene.add(rio);
+}
+crearRio(0,0,1500,20);
+crearRio(-500,300,1000,15);
+
+// Lagos
+function crearLago(x,z,ancho,largo){
+    let lago = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho,0.5,largo),
+        new THREE.MeshPhongMaterial({color:0x0033ff, transparent:true, opacity:0.7})
+    );
+    lago.position.set(x,0.25,z);
+    scene.add(lago);
+}
+crearLago(200,200,60,80);
+
+// Parques
+function crearParque(x,z,radio){
+    let parque = new THREE.Mesh(
+        new THREE.CylinderGeometry(radio,radio,0.5,32),
+        new THREE.MeshPhongMaterial({color:0x00ff00, transparent:true, opacity:0.5})
+    );
+    parque.position.set(x,0.25,z);
+    scene.add(parque);
+}
+crearParque(-150,100,50);
+
+// ======================
+// CASAS
+// ======================
+let casas = [];
+function crearCasa(nombre="Comprador"){
+    let casa = new THREE.Mesh(
+        new THREE.BoxGeometry(20,15,20),
+        new THREE.MeshPhongMaterial({color:0xff9900})
+    );
+    casa.position.set(Math.random()*600-300,7.5,Math.random()*600-300);
+
+    // Letrero personalizable
+    let canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 128;
+    let ctx = canvas.getContext('2d');
+    ctx.fillStyle = "#00ff90";
+    ctx.font = "30px Arial";
+    ctx.fillText(nombre,10,64);
+    let texture = new THREE.CanvasTexture(canvas);
+    let label = new THREE.Mesh(
+        new THREE.PlaneGeometry(20,5),
+        new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true})
+    );
+    label.position.set(0,15,12);
+    casa.add(label);
+
+    scene.add(casa);
+    casas.push(casa);
+}
+
+// ======================
+// CRÉDITOS Y MONEDA REAL
+// ======================
+let creditos = 100;
+function actualizarCreditos(){document.getElementById("creditos").innerText = "Créditos: "+creditos;}
+
+// ======================
+// FUNCIONES INTERACTIVAS
+// ======================
+function abrirTiendaCasas(){
+    let nombre = prompt("Nombre para tu casa:");
+    if(nombre){
+        crearCasa(nombre);
+        creditos -= 50;
+        actualizarCreditos();
+    }
+}
+function abrirTiendaCreditos(){
+    alert("Aquí abrirá la pasarela de pago real (Stripe/PayPal) para comprar créditos.");
+}
+function entrarCasa(){alert("Entrando a tu casa... Próximamente podrás personalizar interiores 3D.");}
+function llamarTaxi(){
+    if(creditos>=10){
+        alert("Taxi futurista llamado. Te lleva a cualquier lugar de la ciudad.");
+        creditos -= 10;
+        actualizarCreditos();
+    } else alert("No tienes créditos suficientes.");
+}
+function viajeEspacial(){
+    if(creditos>=100){
+        alert("Iniciando viaje espacial. Próximamente simulación 3D y visualización de exoplanetas.");
+        creditos -= 100;
+        actualizarCreditos();
+    } else alert("No tienes créditos suficientes.");
+}
+function comprarAvatar(){
+    if(creditos>=30){
+        alert("Avatar comprado y agregado a tu perfil.");
+        creditos -=30;
+        actualizarCreditos();
+    } else alert("No tienes créditos suficientes.");
+}
+function comprarMascota(){
+    if(creditos>=20){
+        alert("Mascota comprada y agregada a tu perfil.");
+        creditos -=20;
+        actualizarCreditos();
+    } else alert("No tienes créditos suficientes.");
+}
+function comprarCarro(){
+    if(creditos>=50){
+        alert("Carro futurista comprado y agregado a tu garaje.");
+        creditos -=50;
+        actualizarCreditos();
+    } else alert("No tienes créditos suficientes.");
+}
+
+// ======================
+// RENDER LOOP
+// ======================
+function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene,camera);
+}
+animate();
+const express = require('express');
+const path = require('path');
+const app = express();
+const port = 3000;
+
+app.use(express.static(path.join(__dirname,'../public')));
+
+app.get('/', (req,res) => {
+    res.sendFile(path.join(__dirname,'../public/index.html'));
+});
+
+app.listen(port, () => console.log(`Servidor
